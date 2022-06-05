@@ -1,0 +1,15 @@
+2:	
+	Algorithm: 
+		Neural Networks
+		
+	Design Decisions: 	
+		formatting of data
+			conversion of data RGB to RGB-255
+		structure of NN
+		
+	Hyperparameters:
+		Hidden layers
+			no. of hidden layers
+			no. of nodes in hidden layer
+		Activation functions
+		References
