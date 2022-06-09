@@ -51,12 +51,10 @@ def refineData(imgs):
                 for i in range(3):
                     ans = ans + math.pow(img[r][c][i], 2)
                 ans = ans / 3
-                Two_Dim[r][c] = math.floor(math.sqrt(ans) / 255)
+                Two_Dim[r][c] = np.array(math.floor(math.sqrt(ans)))
         refinedImgs += [Two_Dim]
 
-    refinedImgs = np.reshape(refinedImgs, (len(imgs), 784))
-
-    return (refinedImgs)
+    return (np.array(refinedImgs))
 
 
 #take in labels
@@ -68,7 +66,7 @@ def formatLabels():
             str = f.readline()
             if not str:
                 break
-            imgs += [generateImage(str)]
+            imgs += [int(str)]
 
     f.close()
     return np.array(imgs)
@@ -88,19 +86,19 @@ if __name__ == "__main__":
     print(len(refinedImgs[2]))
     inp = int(input('enter Image imgber to view: '))
 
-    # while (inp != -1):
-    #     try:
-    #         plt.imshow(imgs[inp])
-    #         plt.show()
-    #         inp = int(input('enter Image imgber to view: '))
-    #     except:
-    #         print("Invalid value")
-
     while (inp != -1):
         try:
-            print(np.array2string(imgs[inp]))
-            print('\n')
-            print(np.array2string(refinedImgs[inp]))
+            plt.imshow(imgs[inp])
+            plt.show()
             inp = int(input('enter Image imgber to view: '))
         except:
             print("Invalid value")
+
+    # while (inp != -1):
+    #     try:
+    #         print(np.array2string(imgs[inp]))
+    #         print('\n')
+    #         print(np.array2string(refinedImgs[inp]))
+    #         inp = int(input('enter Image number to view: '))
+    #     except:
+    #         print("Invalid value")
