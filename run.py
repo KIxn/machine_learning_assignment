@@ -1,4 +1,16 @@
 import torch
+import numpy as np
+import math
+import ast
+
+
+#convert decimal rgb to rgb-255
+def evaluateValues(arr):
+    vals = []
+    for x in arr:
+        vals += [math.floor(ast.literal_eval(x) * 255.0)]
+
+    return (np.array(vals))
 
 
 if __name__ == "__main__":
@@ -7,5 +19,28 @@ if __name__ == "__main__":
     print('\n')
     model.eval()
     print(model)
-    
-    
+    while True:
+        arr = np.array(input().split(" "))
+        img = np.reshape([evaluateValues(arr)], (28, 28, 3))
+        Two_Dim = np.full((1, 28, 28), 0.0)
+        for r in range(28):
+
+            for c in range(28):
+                ans = 0
+
+                ans += 0.2126 * img[r][c][0]  #red
+                ans += 0.7152 * img[r][c][1]  #green
+                ans += 0.0722 * img[r][c][2]  #blue
+
+                if (ans != 0):
+                    ans = 1.0
+
+                Two_Dim[0][r][c] = np.array(ans)
+        image = torch.tensor(Two_Dim)
+        img = image.view(1, 784)
+        with torch.no_grad():
+            logps = model(img.float())
+
+        ps = torch.exp(logps)
+        probab = list(ps.numpy()[0])
+        print(probab.index(max(probab)))
