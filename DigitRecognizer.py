@@ -1,157 +1,134 @@
 import numpy as np
-import matplotlib.pyplot as plt
-import ast
-import math
 import torch
-from torch import nn
-from torch.utils.data import DataLoader
-from torchvision import datasets
-from torchvision.transforms import ToTensor
+import torchvision
+import matplotlib.pyplot as plt
+from time import time
+from torchvision import datasets, transforms
+from torch import nn, optim
 
-def batchGenerator(data , labels):
-    for i in range(15):
-        
-        print(0*i)
-        print(80*i)
-        print('\n')
-        
-    
+transform = transforms.Compose([
+    transforms.ToTensor(),
+    transforms.Normalize((0.5, ), (0.5, )),
+])
+
+trainset = datasets.MNIST('PATH_TO_STORE_TRAINSET',
+                          download=True,
+                          train=True,
+                          transform=transform)
+valset = datasets.MNIST('PATH_TO_STORE_TESTSET',
+                        download=True,
+                        train=False,
+                        transform=transform)
+trainloader = torch.utils.data.DataLoader(trainset,
+                                          batch_size=64,
+                                          shuffle=True)
+valloader = torch.utils.data.DataLoader(valset, batch_size=64, shuffle=True)
+
+dataiter = iter(trainloader)
+images, labels = dataiter.next()
+
+print(images.shape)
+print(labels.shape)
+
+plt.imshow(images[0].numpy().squeeze(), cmap='gray_r')
+figure = plt.figure()
+num_of_images = 60
+for index in range(1, num_of_images + 1):
+    plt.subplot(6, 10, index)
+    plt.axis('off')
+    plt.imshow(images[index].numpy().squeeze(), cmap='gray_r')
+
+input_size = 784
+hidden_sizes = [128, 64]
+output_size = 10
+
+model = nn.Sequential(nn.Linear(input_size, hidden_sizes[0]), nn.ReLU(),
+                      nn.Linear(hidden_sizes[0], hidden_sizes[1]), nn.ReLU(),
+                      nn.Linear(hidden_sizes[1], output_size),
+                      nn.LogSoftmax(dim=1))
+print(model)
+
+criterion = nn.NLLLoss()
+images, labels = next(iter(trainloader))
+images = images.view(images.shape[0], -1)
+print(images)
+logps = model(images)  #log probabilities
+loss = criterion(logps, labels)  #calculate the NLL loss
+
+print('Before backward pass: \n', model[0].weight.grad)
+loss.backward()
+print('After backward pass: \n', model[0].weight.grad)
+
+optimizer = optim.SGD(model.parameters(), lr=0.003, momentum=0.9)
+time0 = time()
+epochs = 15
+for e in range(epochs):
+    running_loss = 0
+    for images, labels in trainloader:
+        # Flatten MNIST images into a 784 long vector
+        images = images.view(images.shape[0], -1)
+
+        # Training pass
+        optimizer.zero_grad()
+
+        output = model(images)
+        loss = criterion(output, labels)
+
+        #This is where the model learns by backpropagating
+        loss.backward()
+
+        #And optimizes its weights here
+        optimizer.step()
+
+        running_loss += loss.item()
+    else:
+        print("Epoch {} - Training loss: {}".format(
+            e, running_loss / len(trainloader)))
+print("\nTraining Time (in minutes) =", (time() - time0) / 60)
 
 
-#convert decimal rgb to rgb-255
-def evaluateValues(arr):
-    vals = []
-    for x in arr:
-        vals += [math.floor(ast.literal_eval(x) * 255.0)]
+def view_classify(img, ps):
+    ''' Function for viewing an image and it's predicted classes.
+    '''
+    ps = ps.data.numpy().squeeze()
 
-    return (np.array(vals))
-
-
-def generateImage(str):
-    arr = np.array(str.split(" "))
-    image = np.reshape([evaluateValues(arr)], (28, 28, 3))
-    return image
-
-
-def formatData():
-    imgs = []
-    #take in data
-    with open('inputs.txt', 'r') as f:
-        while True:
-            str = f.readline()
-            if not str:
-                break
-            imgs += [generateImage(str)]
-
-    f.close()
-    return np.array(imgs)
+    fig, (ax1, ax2) = plt.subplots(figsize=(6, 9), ncols=2)
+    ax1.imshow(img.resize_(1, 28, 28).numpy().squeeze())
+    ax1.axis('off')
+    ax2.barh(np.arange(10), ps)
+    ax2.set_aspect(0.1)
+    ax2.set_yticks(np.arange(10))
+    ax2.set_yticklabels(np.arange(10))
+    ax2.set_title('Class Probability')
+    ax2.set_xlim(0, 1.1)
+    plt.tight_layout()
 
 
-#refine data to a 28x28 grid
-def refineData(imgs):
-    refinedImgs = []
-    for img in imgs:
-        Two_Dim = np.full((1,28, 28), 0)
-        for r in range(28):
+images, labels = next(iter(valloader))
 
-            for c in range(28):
-                ans = 0
-                
-                ans += 0.2126* img[r][c][0]   #red
-                ans += 0.7152* img[r][c][1]   #green
-                ans += 0.0722* img[r][c][2]   #blue
-                
-                if (ans != 0):
-                    ans = 1
-                    
-                    
-                Two_Dim[0][r][c] = np.array(ans)
-        refinedImgs += [Two_Dim]
+img = images[0].view(1, 784)
+with torch.no_grad():
+    logps = model(img)
 
-    #return (np.reshape(np.array(refinedImgs), (28, 28, 1)))
-    return (np.array(refinedImgs))
+ps = torch.exp(logps)
+probab = list(ps.numpy()[0])
+print("Predicted Digit =", probab.index(max(probab)))
+view_classify(img.view(1, 28, 28), ps)
 
+correct_count, all_count = 0, 0
+for images, labels in valloader:
+    for i in range(len(labels)):
+        img = images[i].view(1, 784)
+        with torch.no_grad():
+            logps = model(img)
 
-#take in labels
-def formatLabels():
-    imgs = []
-    #take in data
-    with open('labels.txt', 'r') as f:
-        while True:
-            str = f.readline()
-            if not str:
-                break
-            imgs += [int(str)]
+        ps = torch.exp(logps)
+        probab = list(ps.numpy()[0])
+        pred_label = probab.index(max(probab))
+        true_label = labels.numpy()[i]
+        if (true_label == pred_label):
+            correct_count += 1
+        all_count += 1
 
-    f.close()
-    return np.array(imgs)
-
-
-if __name__ == "__main__":
-    imgs = formatData() # (28, 28, 3)
-
-    
-    refinedImgs = refineData(imgs)
-    img_data = torch.tensor(refinedImgs)
-    labels = formatLabels()
-    tl = torch.tensor(labels)
-    
-    
-    training_data = img_data[0:1200]
-    traning_labels = tl[0:1200]
-    
-    #trainloader = torch.utils.data.DataLoader(training_data,batch_size=64,shuffle=True)
-    
-
-    
-    valid_data = img_data[1200:1600]
-    valid_labels = tl[1200:1600]
-    
-    #valloader = torch.utils.data.DataLoader(valid_data, batch_size=64, shuffle=True)
-    
-    test_data = img_data[1600:2000]
-    test_labels = tl[1600:2000]
-    
-    #testloader = torch.utils.data.DataLoader(test_data, batch_size=64, shuffle=True)
-    
-    def iterateData(data , lbl,i): # feed data in batches
-        j = i - 1
-        return data[j*80:i*80] , lbl[j*80:i*80]
-    
-    
-    
-        
-        
-        
-    
-    
-    
-    print(img_data.shape)
-    print(training_data.shape)
-    print(valid_data.shape)
-    print(test_data.shape)
-    
-    
-    print(tl.shape)
-    print(len(refinedImgs[2]))
-    inp = int(input('enter Image imgber to view: '))
-
-    # while (inp != -1):
-    #     try:
-    #         plt.imshow(imgs[inp])
-    #         plt.show()
-    #         inp = int(input('enter Image imgber to view: '))
-    #     except:
-    #         print("Invalid value")
-
-    while (inp != -1):
-        try:
-            print(np.array2string(imgs[inp]))
-            print('\n')
-            print(np.array2string(refinedImgs[inp]))
-            print('\n')
-            print("predicted num:")
-            print(labels[inp])
-            inp = int(input('enter Image number to view: '))
-        except:
-            print("Invalid value")
+print("Number Of Images Tested =", all_count)
+print("\nModel Accuracy =", (correct_count / all_count))

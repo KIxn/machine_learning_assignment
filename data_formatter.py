@@ -159,6 +159,8 @@ if __name__ == "__main__":
             print("Epoch {} - Training loss: {}".format(e, running_loss / len(training_data)))
     print("\nTraining Time (in minutes) =", (time() - time0) / 60)
     
+    #torch.save(model.state_dict(), './digit_classifier_model.pt')
     torch.save(model, './digit_classifier_model.pt')
     print("model saved")
+    
 
