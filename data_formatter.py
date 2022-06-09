@@ -54,7 +54,7 @@ def refineData(imgs):
                 Two_Dim[r][c] = np.array(math.floor(math.sqrt(ans)))
         refinedImgs += [Two_Dim]
 
-    return (np.array(refinedImgs))
+    return (np.array(np.reshape(np.array(refinedImgs), (28, 28, 1))))
 
 
 #take in labels
