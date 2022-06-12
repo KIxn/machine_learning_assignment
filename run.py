@@ -2,13 +2,14 @@ import torch
 import numpy as np
 import math
 import ast
+import sys
 
 
 #convert decimal rgb to rgb-255
 def evaluateValues(arr):
     vals = []
     for x in arr:
-        vals += [math.floor(ast.literal_eval(x) * 255.0)]
+        vals += [(np.float(x) * 255.0)]
 
     return (np.array(vals))
 
@@ -19,9 +20,12 @@ if __name__ == "__main__":
     print('\n')
     model.eval()
     print(model)
-    while True:
-        arr = np.array(input().split(" "))
-        img = np.reshape([evaluateValues(arr)], (28, 28, 3))
+    arr = np.loadtxt(sys.stdin).reshape(-1, 28, 28, 3)
+    labels = [int(x) for x in np.loadtxt('labels.txt')]
+    correct = 0
+    total = 0
+    for inp in arr:
+        img = inp  # np.reshape([evaluateValues(inp)], (28, 28, 3))
         Two_Dim = np.full((1, 28, 28), 0.0)
         for r in range(28):
 
@@ -43,4 +47,12 @@ if __name__ == "__main__":
 
         ps = torch.exp(logps)
         probab = list(ps.numpy()[0])
-        print(probab.index(max(probab)))
+        pred = probab.index(max(probab))
+        print("Predicted: " + str(pred) + " Expected: " + str(labels[total]))
+        if (pred == labels[total]):
+            correct += 1
+        total += 1
+
+    accuracy = correct / total
+    accuracy *= 100
+    print('Accuracy: ' + str(accuracy) + '%')

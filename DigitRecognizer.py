@@ -59,7 +59,7 @@ print('Before backward pass: \n', model[0].weight.grad)
 loss.backward()
 print('After backward pass: \n', model[0].weight.grad)
 
-optimizer = optim.SGD(model.parameters(), lr=0.003, momentum=0.9)
+optimizer = optim.Adam(model.parameters(), lr=1e-3)
 time0 = time()
 epochs = 15
 for e in range(epochs):
@@ -132,3 +132,4 @@ for images, labels in valloader:
 
 print("Number Of Images Tested =", all_count)
 print("\nModel Accuracy =", (correct_count / all_count))
+torch.save(model, 'digit_classifier_model.pt')
